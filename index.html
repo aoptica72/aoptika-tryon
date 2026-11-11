@@ -4,7 +4,15 @@
 <body><main><h1>👓 А-Оптика | Примерочная</h1><section class="panel"><label class="btn" for="upload">📷 Загрузить фото</label><input type="file" id="upload" accept="image/*"><p id="status" class="status">Выберите фотографию лица анфас.</p><div id="stage" class="stage"><div id="placeholder" class="placeholder">Загрузите фотографию для примерки</div><canvas id="canvas" hidden></canvas></div></section><section class="panel"><h2>Выберите оправу</h2><div id="frames" class="frames"></div><p class="small">Перемещайте оправу пальцем или мышью. При доступном распознавании она автоматически разместится по глазам.</p><div class="controls"><label>Размер очков <input type="range" id="scale" min="55" max="175" value="100"></label><label>Положение по высоте <input type="range" id="vertical" min="-120" max="120" value="0"></label><button id="reset" class="secondary">Вернуть положение</button><button id="save">Сохранить примерку</button></div></section><p class="small">Демонстрационная версия. Фотография обрабатывается в браузере и не загружается на сервер А-Оптики. Для распознавания лица требуется интернет-соединение.</p></main>
 <script type="module">
 const $=id=>document.getElementById(id), canvas=$('canvas'),ctx=canvas.getContext('2d');
-const models=[{name:'Классика',type:'rect',color:'#252733'},{name:'Круглая',type:'round',color:'#29384d'},{name:'Авиатор',type:'aviator',color:'#8a7149'}];
+
+const models=[
+{name:'Классика',type:'rect',color:'#252733'},
+{name:'Круглая',type:'round',color:'#29384d'},
+{name:'Авиатор',type:'aviator',color:'#8a7149'},
+{name:'DACCHi 34355',type:'image',src:'dacchi-34355.png'},
+{name:'DACCHi 31981',type:'image',src:'dacchi-31981.png'}
+];
+
 let img=null,choice=0,anchor={x:.5,y:.43,w:.40,angle:0},autoAnchor=null,drag=null,detectorPromise=null;
 $('frames').innerHTML=models.map((m,i)=>`<button data-id="${i}" class="${i===0?'active':''}">${m.name}</button>`).join('');
 $('frames').onclick=e=>{let b=e.target.closest('button[data-id]');if(!b)return;choice=Number(b.dataset.id);document.querySelectorAll('#frames button').forEach(el=>el.classList.toggle('active',el===b));draw()};
