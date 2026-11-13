@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#152a55">
+  <title>А-Оптика — виртуальная примерочная в Telegram</title>
+  <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
+  <link rel="stylesheet" href="telegram.css">
+</head>
+<body>
+  <header class="header"><div class="logo"><span class="logo-icon">А</span><span>А-Оптика <small>ВИРТУАЛЬНАЯ ПРИМЕРОЧНАЯ</small></span></div><span class="test-badge">ТЕСТ</span></header>
+  <main>
+    <section class="intro"><h1>Найдите свою оправу</h1><p>Примерьте DACCHi 34355 на своей фотографии. Без регистрации и передачи селфи нашему серверу.</p></section>
+    <section class="panel" id="photo-panel">
+      <h2><span class="step">1</span> Ваша фотография</h2>
+      <div class="notice">Ваше фото обрабатывается <b>только в браузере</b>. Мы не сохраняем его на сервере. Физическая посадка очков может отличаться.</div>
+      <label class="consent"><input id="consent" type="checkbox"><span>Я разрешаю обработать выбранную фотографию локально на этом устройстве для виртуальной примерки.</span></label>
+      <div class="upload-actions">
+        <label class="button" for="file">📷 Загрузить фотографию</label>
+        <label class="button button-secondary" for="camera">🤳 Сделать селфи</label>
+      </div>
+      <input id="file" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+      <input id="camera" type="file" accept="image/*" capture="user" hidden>
+      <p id="status" class="status" role="status" aria-live="polite">Подойдёт фотография лица анфас при хорошем освещении.</p>
+      <div class="stage" id="stage"><div class="placeholder" id="placeholder"><span>👓</span><b>Здесь появится ваша примерка</b><small>Загрузите фото, чтобы увидеть себя в очках</small></div><canvas id="preview" hidden aria-label="Результат примерки"></canvas></div>
+    </section>
+    <section class="panel">
+      <h2><span class="step">2</span> Оправа</h2>
+      <div id="catalog" class="catalog"></div>
+      <div class="notice compact">Параметры и посадка на фото ориентировочные. Для точного подбора обратитесь в салон.</div>
+      <h3>Настройте положение оправы</h3>
+      <p class="hint">Оправу можно перетаскивать пальцем прямо на фотографии.</p>
+      <div class="controls">
+        <label>Размер <output id="scale-label">100%</output><input id="scale" type="range" min="70" max="140" value="100"></label>
+        <label>Влево / вправо <input id="horizontal" type="range" min="-120" max="120" value="0"></label>
+        <label>Выше / ниже <input id="vertical" type="range" min="-120" max="120" value="0"></label>
+        <label>Поворот <output id="angle-label">0°</output><input id="angle" type="range" min="-20" max="20" value="0"></label>
+      </div>
+      <div class="row"><button class="button button-secondary" id="reset">↺ Автоматически</button><button class="button button-secondary" id="compare">До / после</button></div>
+      <div class="row"><button class="button" id="save">⬇ Сохранить фото</button><button class="button button-secondary" id="download-frame">PNG оправы</button></div>
+    </section>
+    <section class="panel">
+      <h2><span class="step">3</span> Понравилась оправа?</h2>
+      <p class="small">Цена и наличие уточняются в салонах сети А-Оптика.</p>
+      <div class="actions"><button class="button" data-action="booking">📅 Записаться на примерку</button><button class="button button-secondary" data-action="stock">🔎 Узнать наличие</button><button class="button button-secondary" data-action="favorite">♡ В избранное</button><button class="button button-secondary" data-action="consultation">💬 Консультация</button></div>
+      <a class="site-link" href="https://aoptica.ru" target="_blank" rel="noopener noreferrer">Адреса салонов и контакты: aoptica.ru</a>
+    </section>
+    <footer>Тестовая примерочная · Фото остаётся на устройстве · © А-Оптика</footer>
+  </main>
+  <script type="module" src="telegram.js"></script>
+</body>
+</html>

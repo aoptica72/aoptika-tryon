@@ -1,0 +1,14 @@
+[
+  {
+    "sku": "DACCHI-34355",
+    "brand": "DACCHi",
+    "model": "34355",
+    "name": "DACCHi 34355",
+    "photo": "dacchi-34355.png",
+    "size_mm": {"lens": 54, "bridge": 17, "temple": 146, "front": null},
+    "width_to_eye_distance": 1.57,
+    "eye_line_offset_ratio": -0.065,
+    "price_rub": null,
+    "stock": "уточняется"
+  }
+]

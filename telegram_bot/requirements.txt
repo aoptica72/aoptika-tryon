@@ -1,0 +1,5 @@
+aiogram>=3.13,<4
+mediapipe>=0.10.20,<0.11
+Pillow>=10.4,<13
+numpy>=1.26,<3
+python-dotenv>=1.0,<2

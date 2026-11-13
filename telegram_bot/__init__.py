@@ -1,0 +1,1 @@
+"""Telegram try-on for A-Optika."""
