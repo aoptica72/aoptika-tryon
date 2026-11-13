@@ -59,7 +59,7 @@ async function detectFace(image){
   const detector=await detectorPromise;
   return detector.detect(image).faceLandmarks?.[0]||null;
 }
-function resetControls(){for(const id of ['horizontal','vertical','angle'])$(id).value=0;$('scale').value=100;$('scale-label').value='100%';$('angle-label').value='0°';state.showOriginal=false;}
+function resetControls(){for(const id of ['horizontal','vertical','angle'])$(id).value=0;$('scale').value=100;$('scale-label').value='100%';$('angle-label').value='0°';state.showOriginal=false;$('compare').textContent='До / после';$('compare').setAttribute('aria-pressed','false');}
 function draw(){
   if(!state.photo)return;
   ctx.clearRect(0,0,preview.width,preview.height);
@@ -103,14 +103,18 @@ async function onPhoto(file){
 for(const id of ['file','camera'])$(id).addEventListener('change',e=>onPhoto(e.target.files?.[0]));
 for(const id of ['scale','horizontal','vertical','angle'])$(id).addEventListener('input',()=>{ $('scale-label').value=$('scale').value+'%';$('angle-label').value=$('angle').value+'°';state.showOriginal=false;draw();});
 $('reset').addEventListener('click',()=>{if(!state.photo)return;state.anchor={...(state.auto||{x:.5,y:.43,eyeDist:0,angle:0})};resetControls();draw();status('Положение оправы сброшено.');});
-$('compare').addEventListener('pointerdown',()=>{state.showOriginal=true;draw();});
-for(const ev of ['pointerup','pointercancel','pointerleave'])$('compare').addEventListener(ev,()=>{state.showOriginal=false;draw();});
-$('compare').addEventListener('click',()=>{state.showOriginal=!state.showOriginal;draw();});
+$('compare').addEventListener('click',()=>{
+  if(!state.photo || !state.overlay){status('Для сравнения сначала загрузите фото.');return;}
+  state.showOriginal=!state.showOriginal;
+  $('compare').textContent=state.showOriginal?'Показать примерку':'До / после';
+  $('compare').setAttribute('aria-pressed',String(state.showOriginal));
+  draw();
+});
 preview.addEventListener('pointerdown',e=>{if(!state.photo)return;state.drag={x:e.clientX,y:e.clientY,ax:state.anchor.x,ay:state.anchor.y};preview.setPointerCapture(e.pointerId);});
 preview.addEventListener('pointermove',e=>{if(!state.drag)return;const rect=preview.getBoundingClientRect();state.anchor.x=state.drag.ax+(e.clientX-state.drag.x)/rect.width;state.anchor.y=state.drag.ay+(e.clientY-state.drag.y)/rect.height;state.showOriginal=false;draw();});
 for(const ev of ['pointerup','pointercancel','lostpointercapture'])preview.addEventListener(ev,()=>{state.drag=null;});
 function download(canvas,name){canvas.toBlob(blob=>{if(!blob){status('Не удалось сохранить PNG.');return;}const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=name;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);},'image/png');}
-$('save').addEventListener('click',()=>{if(!state.photo){status('Сначала загрузите фото.');return;}state.showOriginal=false;draw();download(preview,'a-optika-dacchi-34355-primerka.png');});
+$('save').addEventListener('click',()=>{if(!state.photo || !state.overlay){status('Сначала загрузите фото и дождитесь загрузки оправы.');return;}state.showOriginal=false;$('compare').textContent='До / после';$('compare').setAttribute('aria-pressed','false');draw();download(preview,'a-optika-dacchi-34355-primerka.png');});
 $('download-frame').addEventListener('click',()=>{if(!state.overlay){status('Оправа пока не загружена.');return;}download(state.overlay,'dacchi-34355-transparent.png');});
 document.querySelectorAll('[data-action]').forEach(button=>button.addEventListener('click',()=>{
   if(!state.model)return;
