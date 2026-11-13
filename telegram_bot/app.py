@@ -12,7 +12,7 @@ from aiogram import Bot, Dispatcher, F, Router
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.types import (BufferedInputFile, CallbackQuery, InlineKeyboardButton,
+from aiogram.types import (BotCommand, MenuButtonWebApp, BufferedInputFile, CallbackQuery, InlineKeyboardButton,
                            InlineKeyboardMarkup, KeyboardButton, Message, ReplyKeyboardMarkup,
                            WebAppInfo)
 from dotenv import load_dotenv
@@ -68,6 +68,13 @@ async def welcome(message: Message, state: FSMContext) -> None:
         'Вы можете отозвать согласие командой /delete.' + link +
         '\n\nЕсли согласны, подтвердите обработку фотографии.',
         reply_markup=consent_keyboard())
+
+
+@router.message(Command('tryon'))
+async def open_tryon(message: Message) -> None:
+    """BotFather's /tryon command must always open the existing Mini App."""
+    await message.answer('👓 Откройте виртуальную примерочную через кнопку ниже. Фото обрабатывается прямо на устройстве.',
+                         reply_markup=main_keyboard())
 
 
 @router.callback_query(F.data.startswith('consent:'))
@@ -269,6 +276,20 @@ async def main() -> None:
         raise RuntimeError('Укажите BOT_TOKEN в переменных окружения')
     logging.basicConfig(level=logging.INFO)
     bot = Bot(token=token)
+    url = os.getenv('MINI_APP_URL', 'https://aoptica72.github.io/aoptika-tryon/telegram.html')
+    if not url.startswith('https://'):
+        raise RuntimeError('MINI_APP_URL должен быть HTTPS-адресом')
+    try:
+        # Synchronize commands/menu with the already registered @AOptikaTryOnBot.
+        await bot.set_my_commands([
+            BotCommand(command='start', description='Запустить примерочную'),
+            BotCommand(command='tryon', description='Примерить DACCHi 34355'),
+            BotCommand(command='delete', description='Очистить текущую сессию'),
+        ])
+        await bot.set_chat_menu_button(menu_button=MenuButtonWebApp(
+            text='👓 Примерить очки', web_app=WebAppInfo(url=url)))
+    except Exception:
+        log.exception('Не удалось настроить меню бота через Telegram API')
     dp = Dispatcher(storage=MemoryStorage())
     dp.include_router(router)
     await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
