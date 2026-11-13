@@ -42,7 +42,9 @@ def source_cutout(source: Image.Image, mask_data: dict | None = None) -> Image.I
         painter.polygon([tuple(p) for p in points], fill=0)
     # Original was shot on white; convert its white matte to translucency without new frame geometry.
     gray = ImageOps.grayscale(rgb)
-    opacity = gray.point(lambda lum: max(0, min(255, int((255 - lum) * 2.1))))
+    # Suppress the off-white photo backdrop and faint floor shadows while retaining
+    # the photographed rim tones. 240 is the verified white-matte cutoff for this SKU.
+    opacity = gray.point(lambda lum: max(0, min(255, round((240 - lum) * 3.8))))
     alpha = ImageChops.multiply(m, opacity)
     rgba = rgb.convert('RGBA')
     rgba.putalpha(alpha)
