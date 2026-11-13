@@ -17,3 +17,9 @@ jobs:
       - run: python -m compileall -q telegram_bot
       - run: node --check telegram.js
       - run: python -c 'from telegram_bot.app import router; assert router'
+  docker-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f telegram_bot/Dockerfile -t aoptika-bot-smoke .
+      - run: docker run --rm --entrypoint python aoptika-bot-smoke -c "import aiogram, mediapipe; from telegram_bot.tryon import frame_overlay; assert frame_overlay().mode == 'RGBA'; print('MediaPipe + bot imports + front overlay OK')"
