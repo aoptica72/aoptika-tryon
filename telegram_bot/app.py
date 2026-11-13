@@ -5,6 +5,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 from io import BytesIO
 
 from aiogram import Bot, Dispatcher, F, Router
@@ -164,15 +165,42 @@ async def handle_request(message: Message, state: FSMContext, bot: Bot, action: 
     if not os.getenv('ADMIN_CHAT_ID', '').strip():
         await message.answer('Приём заявок пока не подключён. Свяжитесь с салонами через https://aoptica.ru')
         return
-    await state.update_data(pending_action=action)
-    await message.answer('Укажите имя и телефон одним сообщением. '
-                         'Они будут направлены уполномоченному сотруднику А-Оптики для ответа. '
-                         'Если передумали, отправьте /cancel.')
+    if not privacy_url():
+        await message.answer('Приём заявок временно недоступен: политика обработки данных не настроена.')
+        return
+    await state.update_data(pending_action=action, contact_consent=False)
+    await message.answer(
+        'Для записи или консультации нужны имя и телефон. Если вы согласитесь, они будут '
+        'переданы сотруднику А-Оптики в служебном Telegram-чате для ответа на обращение. '
+        f'Политика обработки данных: {privacy_url()}\n'
+        'Можно отказаться: тогда заявку не отправим.',
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text='✅ Согласен(на) передать контакты', callback_data='contact:yes')],
+            [InlineKeyboardButton(text='❌ Не согласен(на)', callback_data='contact:no')],
+        ]))
+
+
+@router.callback_query(F.data.startswith('contact:'))
+async def consent_contacts(callback: CallbackQuery, state: FSMContext) -> None:
+    data = await state.get_data()
+    if not data.get('pending_action'):
+        await callback.answer('Сначала выберите запись или консультацию.', show_alert=True)
+        return
+    if callback.data == 'contact:no':
+        await state.update_data(pending_action=None, contact_consent=False)
+        await callback.message.answer('Вы отказались от передачи контактов. Заявка отменена.')
+    elif callback.data == 'contact:yes' and privacy_url():
+        await state.update_data(contact_consent=True)
+        await callback.message.answer('Напишите имя и телефон одним сообщением (например: Иван +7 999 123-45-67). Для отмены — /cancel.')
+    else:
+        await callback.answer('Сначала необходимо опубликовать политику обработки данных.', show_alert=True)
+        return
+    await callback.answer()
 
 
 @router.message(Command('cancel'))
 async def cancel_request(message: Message, state: FSMContext) -> None:
-    await state.update_data(pending_action=None)
+    await state.update_data(pending_action=None, contact_consent=False)
     await message.answer('Заявка отменена.')
 
 
@@ -207,9 +235,12 @@ async def request_text(message: Message, state: FSMContext, bot: Bot) -> None:
     if not action:
         await message.answer('Выберите «Примерить очки» или пришлите фотографию анфас.')
         return
+    if not data.get('contact_consent'):
+        await message.answer('Сначала подтвердите согласие на передачу имени и телефона кнопкой выше.')
+        return
     info = message.text.strip()
-    if len(info) < 6 or len(info) > 250:
-        await message.answer('Укажите имя и телефон одним сообщением (не более 250 символов).')
+    if len(info) < 6 or len(info) > 250 or not 10 <= len(re.findall(r'\d', info)) <= 15:
+        await message.answer('Укажите имя и номер телефона с 10–15 цифрами (не более 250 символов).')
         return
     chat_id = os.getenv('ADMIN_CHAT_ID', '').strip()
     if not chat_id:
@@ -227,7 +258,7 @@ async def request_text(message: Message, state: FSMContext, bot: Bot) -> None:
         log.exception('failed to send new lead')
         await message.answer('Не удалось передать заявку. Позвоните в салон через https://aoptica.ru')
         return
-    await state.update_data(pending_action=None)
+    await state.update_data(pending_action=None, contact_consent=False)
     await message.answer('✅ Заявка передана сотруднику А-Оптики. С вами свяжутся.')
 
 
