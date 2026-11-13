@@ -28,7 +28,7 @@ async function prepareCutout(photo,mask){
     const i=(y*width+x)*4;
     // Remove white background and the white backing photographed behind semi-transparent frames.
     const lum=.299*a[i]+.587*a[i+1]+.114*a[i+2];
-    const alpha=Math.round(clamp((255-lum)*2.1,0,255)*selection[i]/255);
+    const alpha=Math.round(clamp((240-lum)*3.8,0,255)*selection[i]/255);
     a[i+3]=alpha;
     if(alpha>3){left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y);}
   }
@@ -134,7 +134,8 @@ async function init(){
     state.models=await catalogResponse.json();const mask=await maskResponse.json();
     state.model=state.models.find(m=>m.sku==='DACCHI-34355');if(!state.model)throw new Error('DACCHi 34355 отсутствует в каталоге');
     const original=await ownImage('./'+state.model.photo);
-    state.overlay=await prepareCutout(original,mask);
+    try{state.overlay=await ownImage('./dacchi-34355-front.png');}
+    catch{state.overlay=await prepareCutout(original,mask);}
     const catalog=$('catalog');const picture=document.createElement('img');picture.src='./'+state.model.photo;picture.alt='Оригинальная фотография DACCHi 34355';
     const info=document.createElement('div');const title=document.createElement('strong');title.textContent=state.model.name;
     const meta=document.createElement('small');meta.textContent=`Размер ${state.model.size_mm.lens}–${state.model.size_mm.bridge}–${state.model.size_mm.temple} мм · Цена/наличие уточняются`;
