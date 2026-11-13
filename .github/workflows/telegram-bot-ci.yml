@@ -12,7 +12,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install pillow pytest
+      - run: pip install pillow pytest 'aiogram>=3.13,<4' 'python-dotenv>=1,<2'
       - run: python -m pytest -q telegram_bot/tests
       - run: python -m compileall -q telegram_bot
       - run: node --check telegram.js
+      - run: python -c 'from telegram_bot.app import router; assert router'
