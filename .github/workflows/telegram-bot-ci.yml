@@ -1,1 +1,17 @@
-The requested file reference is not currently visible. Use files.search or files.list to rediscover the file, then retry with a returned ref_id or file_id.
+name: Telegram try-on tests
+on:
+  push:
+    paths: ['telegram_bot/**', 'telegram.html', '.github/workflows/telegram-bot-ci.yml']
+  pull_request:
+    paths: ['telegram_bot/**', 'telegram.html', '.github/workflows/telegram-bot-ci.yml']
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pillow pytest
+      - run: python -m pytest -q telegram_bot/tests
+      - run: python -m compileall -q telegram_bot
