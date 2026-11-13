@@ -1,0 +1,13 @@
+# Start the existing @AOptikaTryOnBot using the securely supplied .env file.
+# Copy telegram_bot/.env.example to .env on the host (do not commit .env).
+services:
+  aoptika-telegram:
+    build:
+      context: .
+      dockerfile: telegram_bot/Dockerfile
+    env_file:
+      - .env
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
