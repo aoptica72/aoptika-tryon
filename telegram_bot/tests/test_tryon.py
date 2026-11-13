@@ -56,3 +56,16 @@ def test_invalid_scale():
     with pytest.raises(TryOnError):
         composite_on_photo(Image.new('RGB',(300,300)), Image.new('RGBA',(10,10)),
                            (100,100,50,0), scale=4)
+
+
+def test_approved_dacchi_overlay_removes_demo_lens_marks():
+    from telegram_bot.tryon import frame_overlay, ROOT
+    assert (ROOT / 'dacchi-34355.png').is_file()
+    overlay = frame_overlay()
+    assert overlay.mode == 'RGBA'
+    assert overlay.width >= 1300 and overlay.height >= 400
+    alpha = overlay.getchannel('A')
+    # Both interior lens areas must be transparent: demo print and photographed temples removed.
+    assert alpha.getpixel((250, 300)) == 0
+    assert alpha.getpixel((1100, 300)) == 0
+    assert alpha.getextrema()[1] >= 230  # dark frame contours are preserved
