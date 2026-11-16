@@ -34,11 +34,15 @@ def main() -> None:
     if diagnostics.get('bridge'):
         drawer.line(diagnostics['bridge']+[diagnostics['bridge'][0]],fill=(0,255,40), width=4)
     guide.save(ROOT/'qa-mask-contours.jpg', quality=85)
-    preview = Image.new('RGB', frame.size, (198, 155, 131))
-    preview.paste(frame, (0, 0), frame)
+    # Preserve the approved front geometry; add transparent safety margins and export 2x.
+    padded = Image.new('RGBA', (1543, 582), (0, 0, 0, 0))
+    padded.alpha_composite(frame, (29, 29))
+    frame_export = padded.resize((3086, 1164), Image.Resampling.LANCZOS)
+    preview = Image.new('RGB', frame_export.size, (198, 155, 131))
+    preview.paste(frame_export, (0, 0), frame_export)
     preview.save(ROOT/'qa-overlay-preview.jpg',quality=90)
     destination = ROOT / 'dacchi-34355-front.png'
-    frame.save(destination, format='PNG', optimize=True)
+    frame_export.save(destination, format='PNG', optimize=True)
     fingerprint_after = sha256(source.read_bytes()).hexdigest()
     if fingerprint_before != fingerprint_after:
         raise SystemExit('Ошибка: исходное изображение изменилось!')
