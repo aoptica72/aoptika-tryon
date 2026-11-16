@@ -115,7 +115,7 @@ preview.addEventListener('pointermove',e=>{if(!state.drag)return;const rect=prev
 for(const ev of ['pointerup','pointercancel','lostpointercapture'])preview.addEventListener(ev,()=>{state.drag=null;});
 function download(canvas,name){canvas.toBlob(blob=>{if(!blob){status('Не удалось сохранить PNG.');return;}const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=name;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);},'image/png');}
 $('save').addEventListener('click',()=>{if(!state.photo || !state.overlay){status('Сначала загрузите фото и дождитесь загрузки оправы.');return;}state.showOriginal=false;$('compare').textContent='До / после';$('compare').setAttribute('aria-pressed','false');draw();download(preview,'a-optika-dacchi-34355-primerka.png');});
-$('download-frame').addEventListener('click',()=>{if(!state.overlay){status('Оправа пока не загружена.');return;}download(state.overlay,'dacchi-34355-transparent.png');});
+$('download-frame').addEventListener('click',()=>{if(!state.overlay){status('Оправа пока не загружена.');return;}const out=document.createElement('canvas');out.width=3086;out.height=1164;out.getContext('2d').drawImage(state.overlay,58,58,state.overlay.width*2,state.overlay.height*2);download(out,'dacchi-34355-front.png');});
 document.querySelectorAll('[data-action]').forEach(button=>button.addEventListener('click',()=>{
   if(!state.model)return;
   const data=JSON.stringify({action:button.dataset.action,sku:state.model.sku});
