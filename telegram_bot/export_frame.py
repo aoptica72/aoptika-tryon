@@ -31,7 +31,8 @@ def main() -> None:
         drawer.line(polygon + [polygon[0]], fill=(255, 25, 25), width=5)
     for polygon in diagnostics['holes']:
         drawer.line(polygon + [polygon[0]], fill=(0, 140, 255), width=5)
-    drawer.line(diagnostics['bridge']+[diagnostics['bridge'][0]],fill=(0,255,40), width=4)
+    if diagnostics.get('bridge'):
+        drawer.line(diagnostics['bridge']+[diagnostics['bridge'][0]],fill=(0,255,40), width=4)
     guide.save(ROOT/'qa-mask-contours.jpg', quality=85)
     preview = Image.new('RGB', frame.size, (198, 155, 131))
     preview.paste(frame, (0, 0), frame)
