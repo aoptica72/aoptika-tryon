@@ -12,7 +12,7 @@ from aiogram import Bot, Dispatcher, F, Router
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.types import (BotCommand, MenuButtonWebApp, BufferedInputFile, CallbackQuery, InlineKeyboardButton,
+from aiogram.types import (BotCommand, BufferedInputFile, CallbackQuery, InlineKeyboardButton,
                            InlineKeyboardMarkup, KeyboardButton, Message, ReplyKeyboardMarkup,
                            WebAppInfo)
 from dotenv import load_dotenv
@@ -187,7 +187,7 @@ async def handle_request(message: Message, state: FSMContext, bot: Bot, action: 
         return
     await state.update_data(pending_action=action, contact_consent=False)
     await message.answer(
-        'Для записи или консультации нужны имя и телефон. Если вы согласитесь, они будут '
+        'Для записи, запроса наличия или консультации нужны имя и телефон. Если вы согласитесь, они будут '
         'переданы сотруднику А-Оптики в служебном Telegram-чате для ответа на обращение. '
         f'Политика обработки данных: {privacy_url()}\n'
         'Можно отказаться: тогда заявку не отправим.',
@@ -290,17 +290,16 @@ async def main() -> None:
     if not url.startswith('https://'):
         raise RuntimeError('MINI_APP_URL должен быть HTTPS-адресом')
     try:
-        # Synchronize commands/menu with the already registered @AOptikaTryOnBot.
+        # WebAppData.sendData is supported for Web Apps opened by a reply-keyboard button.
+        # /start and /tryon always show that button; keep the default Telegram menu button unchanged.
         await bot.set_my_commands([
             BotCommand(command='start', description='Запустить примерочную'),
             BotCommand(command='tryon', description='Примерить DACCHi 34355'),
             BotCommand(command='delete', description='Очистить текущую сессию'),
             BotCommand(command='server_photo', description='Согласие на фото в чате'),
         ])
-        await bot.set_chat_menu_button(menu_button=MenuButtonWebApp(
-            text='👓 Примерить очки', web_app=WebAppInfo(url=url)))
     except Exception:
-        log.exception('Не удалось настроить меню бота через Telegram API')
+        log.exception('Не удалось обновить список команд бота через Telegram API')
     dp = Dispatcher(storage=MemoryStorage())
     dp.include_router(router)
     await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
