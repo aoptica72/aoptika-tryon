@@ -19,7 +19,7 @@ async function prepareCutout(photo,mask){
   m.fillStyle='white';
   const polygon=(points,fill)=>{m.fillStyle=fill;m.beginPath();m.moveTo(points[0][0],points[0][1]);for(const p of points.slice(1))m.lineTo(p[0],p[1]);m.closePath();m.fill();};
   for(const p of mask.outer)polygon(p,'white');
-  polygon(mask.bridge,'white');
+  if(mask.bridge?.length) polygon(mask.bridge,'white');
   for(const p of mask.holes)polygon(p,'black');
   const pixels=b.getImageData(0,0,width,height),a=pixels.data;
   const selection=m.getImageData(0,0,width,height).data;
@@ -115,7 +115,7 @@ preview.addEventListener('pointermove',e=>{if(!state.drag)return;const rect=prev
 for(const ev of ['pointerup','pointercancel','lostpointercapture'])preview.addEventListener(ev,()=>{state.drag=null;});
 function download(canvas,name){canvas.toBlob(blob=>{if(!blob){status('Не удалось сохранить PNG.');return;}const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=name;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);},'image/png');}
 $('save').addEventListener('click',()=>{if(!state.photo || !state.overlay){status('Сначала загрузите фото и дождитесь загрузки оправы.');return;}state.showOriginal=false;$('compare').textContent='До / после';$('compare').setAttribute('aria-pressed','false');draw();download(preview,'a-optika-dacchi-34355-primerka.png');});
-$('download-frame').addEventListener('click',()=>{if(!state.overlay){status('Оправа пока не загружена.');return;}download(state.overlay,'dacchi-34355-transparent.png');});
+$('download-frame').addEventListener('click',()=>{if(!state.overlay){status('Оправа пока не загружена.');return;}const out=document.createElement('canvas');out.width=3086;out.height=1164;out.getContext('2d').drawImage(state.overlay,58,58,state.overlay.width*2,state.overlay.height*2);download(out,'dacchi-34355-front.png');});
 document.querySelectorAll('[data-action]').forEach(button=>button.addEventListener('click',()=>{
   if(!state.model)return;
   const data=JSON.stringify({action:button.dataset.action,sku:state.model.sku});
@@ -134,8 +134,9 @@ async function init(){
     state.models=await catalogResponse.json();const mask=await maskResponse.json();
     state.model=state.models.find(m=>m.sku==='DACCHI-34355');if(!state.model)throw new Error('DACCHi 34355 отсутствует в каталоге');
     const original=await ownImage('./'+state.model.photo);
-    try{state.overlay=await ownImage('./dacchi-34355-front.png');}
-    catch{state.overlay=await prepareCutout(original,mask);}
+    // Always derive the overlay from the accepted source + the same approved mask used by Python.
+    // This avoids silently loading a stale, lower-quality PNG from an older deployment.
+    state.overlay=await prepareCutout(original,mask);
     const catalog=$('catalog');const picture=document.createElement('img');picture.src='./'+state.model.photo;picture.alt='Оригинальная фотография DACCHi 34355';
     const info=document.createElement('div');const title=document.createElement('strong');title.textContent=state.model.name;
     const meta=document.createElement('small');meta.textContent=`Размер ${state.model.size_mm.lens}–${state.model.size_mm.bridge}–${state.model.size_mm.temple} мм · Цена/наличие уточняются`;

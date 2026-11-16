@@ -15,6 +15,8 @@ jobs:
       - run: pip install pillow pytest 'aiogram>=3.13,<4' 'python-dotenv>=1,<2'
       - run: python -m pytest -q telegram_bot/tests
       - run: python -m compileall -q telegram_bot
+      - run: python -m telegram_bot.export_frame
+      - run: python -c 'from PIL import Image; im=Image.open("dacchi-34355-front.png"); assert im.mode == "RGBA" and im.size == (3086, 1164); print("Approved DACCHi PNG export OK")'
       - run: node --check telegram.js
       - run: python -c 'from telegram_bot.app import router; assert router'
   docker-smoke:

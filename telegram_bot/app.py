@@ -12,7 +12,7 @@ from aiogram import Bot, Dispatcher, F, Router
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.types import (BotCommand, MenuButtonWebApp, BufferedInputFile, CallbackQuery, InlineKeyboardButton,
+from aiogram.types import (BotCommand, BufferedInputFile, CallbackQuery, InlineKeyboardButton,
                            InlineKeyboardMarkup, KeyboardButton, Message, ReplyKeyboardMarkup,
                            WebAppInfo)
 from dotenv import load_dotenv
@@ -41,7 +41,7 @@ def main_keyboard() -> ReplyKeyboardMarkup:
 
 def consent_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text='✅ Согласен(на) на обработку фото', callback_data='consent:yes')],
+        [InlineKeyboardButton(text='✅ Согласен(на) на обработку фото на сервере', callback_data='consent:yes')],
         [InlineKeyboardButton(text='❌ Не согласен(на)', callback_data='consent:no')],
     ])
 
@@ -57,17 +57,18 @@ def actions_keyboard() -> InlineKeyboardMarkup:
 
 @router.message(CommandStart())
 async def welcome(message: Message, state: FSMContext) -> None:
-    await state.clear()
     policy = privacy_url()
-    link = f'\nПолитика обработки данных: {policy}' if policy else '\nПолитика обработки данных: ссылка пока не настроена.'
+    server_note = (f'\nПолитика обработки данных: {policy}' if policy else
+                   '\nПрямая обработка фото, отправленных в чат, пока отключена: сначала нужно опубликовать политику обработки данных.')
     await message.answer(
         'Добро пожаловать в виртуальную примерочную А-Оптика! 👓\n\n'
-        'Для примерки в чате бот получает фото через Telegram и обрабатывает его в памяти '
-        'сервера. Фото не сохраняется в базу, после обработки удаляется из памяти процесса. '
-        'Сообщения с фото могут оставаться в истории Telegram, пока вы их не удалите. '
-        'Вы можете отозвать согласие командой /delete.' + link +
-        '\n\nЕсли согласны, подтвердите обработку фотографии.',
-        reply_markup=consent_keyboard())
+        'Нажмите «Примерить очки» ниже. В Mini App фотография обрабатывается прямо '
+        'на вашем устройстве и не отправляется боту или на сервер А-Оптики. '
+        'Перед выбором фото приложение попросит отдельное согласие.\n\n'
+        'Если вы хотите отправить фотографию непосредственно в чат с ботом, '
+        'это отдельный режим серверной обработки: сначала используйте команду /server_photo '
+        'и подтвердите отдельное согласие.' + server_note,
+        reply_markup=main_keyboard())
 
 
 @router.message(Command('tryon'))
@@ -77,6 +78,20 @@ async def open_tryon(message: Message) -> None:
                          reply_markup=main_keyboard())
 
 
+@router.message(Command('server_photo'))
+async def server_photo_consent(message: Message, state: FSMContext) -> None:
+    if not privacy_url():
+        await message.answer(
+            'Отправка фото непосредственно в чат пока отключена. '
+            'Используйте «👓 Примерить очки»: там фотография обрабатывается локально на устройстве.')
+        return
+    await message.answer(
+        'В этом режиме фотография будет передана боту через Telegram и обработана в памяти сервера А-Оптики. '
+        'Она не сохраняется в базе данных. Перед продолжением ознакомьтесь с политикой: '
+        f'{privacy_url()}',
+        reply_markup=consent_keyboard())
+
+
 @router.callback_query(F.data.startswith('consent:'))
 async def consent(callback: CallbackQuery, state: FSMContext) -> None:
     if callback.data == 'consent:yes':
@@ -84,11 +99,11 @@ async def consent(callback: CallbackQuery, state: FSMContext) -> None:
             await callback.answer('Для реальных пользователей сначала необходимо опубликовать политику обработки данных.', show_alert=True)
             return
         await state.update_data(consent=True)
-        await callback.message.answer('Готово. Загрузите фото анфас или откройте примерочную 👇',
+        await callback.message.answer('Согласие на серверную обработку получено. Пришлите фото анфас или откройте примерочную 👇',
                                       reply_markup=main_keyboard())
     else:
-        await state.clear()
-        await callback.message.answer('Согласие не получено. Фото обрабатываться не будут. /start — начать заново.')
+        await state.update_data(consent=False)
+        await callback.message.answer('Согласие на серверную обработку не получено. Вы можете пользоваться Mini App с локальной обработкой фото.')
     await callback.answer()
 
 
@@ -102,8 +117,8 @@ async def delete_session(message: Message, state: FSMContext) -> None:
 @router.message(F.photo)
 async def photo_tryon(message: Message, state: FSMContext, bot: Bot) -> None:
     data = await state.get_data()
-    if not data.get('consent'):
-        await message.answer('Сначала подтвердите согласие через /start. Фото пока не скачивалось.')
+    if not data.get('consent') or not privacy_url():
+        await message.answer('Для отправки фото в чат сначала используйте /server_photo и подтвердите отдельное согласие. Для локальной примерки откройте Mini App.')
         return
     photo = message.photo[-1]
     if photo.file_size and photo.file_size > MAX_BYTES:
@@ -162,12 +177,7 @@ async def actions(callback: CallbackQuery, state: FSMContext, bot: Bot) -> None:
 
 
 async def handle_request(message: Message, state: FSMContext, bot: Bot, action: str) -> None:
-    if action == 'stock':
-        await message.answer('Наличие и цену DACCHi 34355 уточнит консультант. '
-                             'Могу отправить запрос — нажмите «Консультация».',
-                             reply_markup=actions_keyboard())
-        return
-    if action not in ('booking', 'consultation'):
+    if action not in ('stock', 'booking', 'consultation'):
         return
     if not os.getenv('ADMIN_CHAT_ID', '').strip():
         await message.answer('Приём заявок пока не подключён. Свяжитесь с салонами через https://aoptica.ru')
@@ -177,7 +187,7 @@ async def handle_request(message: Message, state: FSMContext, bot: Bot, action: 
         return
     await state.update_data(pending_action=action, contact_consent=False)
     await message.answer(
-        'Для записи или консультации нужны имя и телефон. Если вы согласитесь, они будут '
+        'Для записи, запроса наличия или консультации нужны имя и телефон. Если вы согласитесь, они будут '
         'переданы сотруднику А-Оптики в служебном Telegram-чате для ответа на обращение. '
         f'Политика обработки данных: {privacy_url()}\n'
         'Можно отказаться: тогда заявку не отправим.',
@@ -253,7 +263,7 @@ async def request_text(message: Message, state: FSMContext, bot: Bot) -> None:
     if not chat_id:
         await message.answer('Заявки сейчас не подключены.')
         return
-    title = 'Запись на примерку' if action == 'booking' else 'Консультация'
+    title = {'stock': 'Запрос наличия', 'booking': 'Запись на примерку', 'consultation': 'Консультация'}[action]
     # Use HTML escaping to avoid Markdown injection; sending to configured operator only.
     from html import escape
     try:
@@ -280,16 +290,16 @@ async def main() -> None:
     if not url.startswith('https://'):
         raise RuntimeError('MINI_APP_URL должен быть HTTPS-адресом')
     try:
-        # Synchronize commands/menu with the already registered @AOptikaTryOnBot.
+        # WebAppData.sendData is supported for Web Apps opened by a reply-keyboard button.
+        # /start and /tryon always show that button; keep the default Telegram menu button unchanged.
         await bot.set_my_commands([
             BotCommand(command='start', description='Запустить примерочную'),
             BotCommand(command='tryon', description='Примерить DACCHi 34355'),
             BotCommand(command='delete', description='Очистить текущую сессию'),
+            BotCommand(command='server_photo', description='Согласие на фото в чате'),
         ])
-        await bot.set_chat_menu_button(menu_button=MenuButtonWebApp(
-            text='👓 Примерить очки', web_app=WebAppInfo(url=url)))
     except Exception:
-        log.exception('Не удалось настроить меню бота через Telegram API')
+        log.exception('Не удалось обновить список команд бота через Telegram API')
     dp = Dispatcher(storage=MemoryStorage())
     dp.include_router(router)
     await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())

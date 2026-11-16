@@ -37,7 +37,8 @@ def source_cutout(source: Image.Image, mask_data: dict | None = None) -> Image.I
     painter = ImageDraw.Draw(m)
     for points in mask_data['outer']:
         painter.polygon([tuple(p) for p in points], fill=255)
-    painter.polygon([tuple(p) for p in mask_data['bridge']], fill=255)
+    if mask_data.get('bridge'):
+        painter.polygon([tuple(p) for p in mask_data['bridge']], fill=255)
     for points in mask_data['holes']:
         painter.polygon([tuple(p) for p in points], fill=0)
     # Original was shot on white; convert its white matte to translucency without new frame geometry.
